@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>African Language Translator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <div class="hero-banner">
+    <span class="flag">🌍</span>
+    <h1>African Language Translator</h1>
+    <p class="subtitle">Translate between English and 23 African languages — powered by Google Translate</p>
+  </div>
+
+  <div class="card">
+
+    <!-- Direction Toggle -->
+    <div class="direction-toggle">
+      <button id="btn-to-english" class="toggle-btn active" onclick="setDirection('to_english')">
+        African → English
+      </button>
+      <button id="btn-to-local" class="toggle-btn" onclick="setDirection('to_local')">
+        English → African
+      </button>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="lang-row">
+      <div class="lang-box">
+        <label>African Language</label>
+        <select id="african-lang">
+          {% for code, name in languages.items() %}
+            <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="arrow">⇄</div>
+      <div class="lang-box">
+        <label>English</label>
+        <div class="lang-static">English 🇬🇧</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="text-area-group">
+      <label id="input-label">Enter text in the African language</label>
+      <textarea id="input-text" rows="5" placeholder="Type here..."></textarea>
+    </div>
+
+    <!-- Translate Button -->
+    <button id="translate-btn" onclick="translateText()">Translate</button>
+
+    <!-- Output -->
+    <div class="output-box" id="output-box">
+      <label>Translation</label>
+      <p id="output-text">Your translation will appear here...</p>
+    </div>
+
+    <!-- Error message -->
+    <p id="error-msg" class="error-msg"></p>
+
+  </div>
+
+  <footer>
+    <p>Built with Python & Flask · Powered by Google Translate · 23 African Languages</p>
+  </footer>
+
+  <script>
+    let direction = "to_english";
+
+    function setDirection(dir) {
+      direction = dir;
+      const btnEng = document.getElementById("btn-to-english");
+      const btnLoc = document.getElementById("btn-to-local");
+      const label = document.getElementById("input-label");
+      const textarea = document.getElementById("input-text");
+
+      if (dir === "to_english") {
+        btnEng.classList.add("active");
+        btnLoc.classList.remove("active");
+        label.textContent = "Enter text in the African language";
+        textarea.placeholder = "Type in Swahili, Yoruba, Zulu, Hausa...";
+      } else {
+        btnLoc.classList.add("active");
+        btnEng.classList.remove("active");
+        label.textContent = "Enter text in English";
+        textarea.placeholder = "Type in English...";
+      }
+
+      document.getElementById("output-text").textContent = "Your translation will appear here...";
+      document.getElementById("error-msg").textContent = "";
+    }
+
+    async function translateText() {
+      const text = document.getElementById("input-text").value.trim();
+      const langCode = document.getElementById("african-lang").value;
+      const btn = document.getElementById("translate-btn");
+      const errorMsg = document.getElementById("error-msg");
+      const outputText = document.getElementById("output-text");
+
+      errorMsg.textContent = "";
+
+      if (!text) {
+        errorMsg.textContent = "⚠️ Please enter some text first.";
+        return;
+      }
+
+      // Set source and target based on direction
+      let sourceLang, targetLang;
+      if (direction === "to_english") {
+        sourceLang = langCode;
+        targetLang = "en";
+      } else {
+        sourceLang = "en";
+        targetLang = langCode;
+      }
+
+      btn.textContent = "Translating...";
+      btn.disabled = true;
+      outputText.textContent = "⏳ Loading...";
+
+      try {
+        const response = await fetch("/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, source_lang: sourceLang, target_lang: targetLang })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          errorMsg.textContent = "❌ " + data.error;
+          outputText.textContent = "Your translation will appear here...";
+        } else {
+          outputText.textContent = data.translated_text;
+        }
+
+      } catch (err) {
+        errorMsg.textContent = "❌ Could not connect to the server. Is app.py running?";
+      }
+
+      btn.textContent = "Translate";
+      btn.disabled = false;
+    }
+  </script>
+
+</body>
+</html>
